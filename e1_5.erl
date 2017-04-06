@@ -46,19 +46,19 @@ server(Recipient) when is_pid(Recipient) ->
 proxy_init(Parent, N) ->
     Pids = [server(self()) || _ <- lists:seq(1, N)],
     Parent ! {ok, self()},
-    proxy(Pids, []).
+    proxy(Pids, Pids).
 
-proxy([], Pids) -> proxy(lists:reverse(Pids) , []);
-proxy([H|T] = A, B) ->
+proxy(Pids, []) -> proxy(Pids, Pids);
+proxy(Pids, L) ->
     receive
         {check, _, _} = Msg ->
-            H ! Msg,
-            proxy(T, [H|B]);
+            hd(L) ! Msg,
+            proxy(Pids, tl(L));
         stop ->
-            [ Pid ! stop || Pid <- A ++ B ];
+            [ Pid ! stop || Pid <- Pids ];
         Msg ->
             io:format("~p received unknown message: ~p~n", [self(), Msg]),
-            proxy(A, B)
+            proxy(Pids, L)
     end.
 
 loop(Recipient) ->
